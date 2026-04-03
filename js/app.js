@@ -19,6 +19,7 @@ const db = firebase.firestore();
 const CATS = {
   expense: [
     { id: 'food',          name: 'Food',          icon: '🍔', color: '#ff6b6b' },
+    { id: 'groceries',     name: 'Groceries',     icon: '🛒', color: '#6ab04c' },
     { id: 'transport',     name: 'Transport',     icon: '🚗', color: '#4ecdc4' },
     { id: 'housing',       name: 'Housing',       icon: '🏠', color: '#45b7d1' },
     { id: 'bills',         name: 'Bills',         icon: '💡', color: '#f9ca24' },
