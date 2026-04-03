@@ -2,6 +2,9 @@
 // ExpenseFlow — Main Application
 // =============================================
 
+// Shared household — all family members read/write to this UID's data
+const HOUSEHOLD_UID = '74sXH7O3J8YEbxQlIUWMIoRnbGk2';
+
 // Firebase Config
 firebase.initializeApp({
   apiKey: "AIzaSyDBvd2VR2QU2a-JYd-2cEeeBA0AuyAnBc0",
@@ -108,14 +111,14 @@ function listenData(uid) {
   if (S.unsub.txns) S.unsub.txns();
   if (S.unsub.budget) S.unsub.budget();
 
-  S.unsub.txns = db.collection('users').doc(uid).collection('transactions')
+  S.unsub.txns = db.collection('users').doc(HOUSEHOLD_UID).collection('transactions')
     .orderBy('date', 'desc')
     .onSnapshot(snap => {
       S.transactions = snap.docs.map(d => ({ id: d.id, ...d.data() }));
       updateAll();
     }, err => console.error('txns:', err));
 
-  S.unsub.budget = db.collection('users').doc(uid).collection('settings').doc('budget')
+  S.unsub.budget = db.collection('users').doc(HOUSEHOLD_UID).collection('settings').doc('budget')
     .onSnapshot(doc => {
       S.budget = doc.exists ? (doc.data().amount || 0) : 0;
       document.getElementById('budget-amount-input').value = S.budget || '';
@@ -126,16 +129,16 @@ function listenData(uid) {
 
 // ── WRITE OPS ──
 async function addTxn(data) {
-  await db.collection('users').doc(S.user.uid).collection('transactions')
-    .add({ ...data, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
+  await db.collection('users').doc(HOUSEHOLD_UID).collection('transactions')
+    .add({ ...data, addedBy: S.user.displayName || S.user.email, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
 }
 
 async function deleteTxn(id) {
-  await db.collection('users').doc(S.user.uid).collection('transactions').doc(id).delete();
+  await db.collection('users').doc(HOUSEHOLD_UID).collection('transactions').doc(id).delete();
 }
 
 async function saveBudget(amount) {
-  await db.collection('users').doc(S.user.uid).collection('settings').doc('budget')
+  await db.collection('users').doc(HOUSEHOLD_UID).collection('settings').doc('budget')
     .set({ amount: parseFloat(amount) });
 }
 
