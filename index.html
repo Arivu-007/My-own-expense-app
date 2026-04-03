@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>ExpenseFlow — Personal Finance Tracker</title>
+  <meta name="description" content="Track your personal expenses and income with real-time cloud sync.">
+  <meta name="theme-color" content="#6c63ff">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="ExpenseFlow">
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <!-- ── AUTH SCREEN ── -->
+  <div id="auth-screen" class="screen">
+    <div class="auth-orbs">
+      <div class="orb orb1"></div>
+      <div class="orb orb2"></div>
+      <div class="orb orb3"></div>
+    </div>
+    <div class="auth-card">
+      <div class="auth-logo">
+        <img src="icons/icon-192.png" alt="ExpenseFlow" class="auth-icon">
+        <h1>ExpenseFlow</h1>
+        <p>Track smarter. Spend wiser.</p>
+      </div>
+      <div class="auth-features">
+        <div class="feat"><span>☁️</span><span>Real-time cloud sync</span></div>
+        <div class="feat"><span>📊</span><span>Visual insights & charts</span></div>
+        <div class="feat"><span>🔒</span><span>Private & secure</span></div>
+      </div>
+      <button id="google-signin-btn" class="btn-google">
+        <svg width="20" height="20" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+        Continue with Google
+      </button>
+      <p class="auth-note">Your data is encrypted and only accessible by you</p>
+    </div>
+  </div>
+
+  <!-- ── APP SCREEN ── -->
+  <div id="app-screen" class="screen hidden">
+
+    <header class="app-header">
+      <div class="header-left">
+        <img id="user-avatar" class="user-avatar" src="" alt="">
+        <div>
+          <p class="header-greeting" id="header-greeting">Good morning</p>
+          <p class="header-name" id="header-name">User</p>
+        </div>
+      </div>
+      <button id="sign-out-btn" class="icon-btn" title="Sign out">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+      </button>
+    </header>
+
+    <main class="tab-content" id="tab-content">
+
+      <!-- DASHBOARD -->
+      <div id="tab-dashboard" class="tab-view active">
+        <div class="balance-card">
+          <div class="balance-label">Monthly Balance</div>
+          <div class="balance-amount" id="total-balance">$0.00</div>
+          <div class="balance-month" id="balance-month">Loading…</div>
+          <div class="balance-row">
+            <div class="balance-stat">
+              <div class="stat-pill income-pill">↑ Income</div>
+              <div class="stat-val income-text" id="total-income">$0.00</div>
+            </div>
+            <div class="balance-divider"></div>
+            <div class="balance-stat">
+              <div class="stat-pill expense-pill">↓ Expenses</div>
+              <div class="stat-val expense-text" id="total-expense">$0.00</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="section-row">
+          <span class="section-title">Monthly Budget</span>
+          <button class="text-btn" id="set-budget-btn">Set Budget</button>
+        </div>
+        <div class="budget-bar-card">
+          <div class="budget-top">
+            <span id="budget-spent-label">$0 spent</span>
+            <span id="budget-of-label" class="muted">of $0</span>
+          </div>
+          <div class="progress-track"><div class="progress-fill" id="budget-fill" style="width:0%"></div></div>
+          <div class="budget-remaining" id="budget-remaining-label">Set a budget to track spending</div>
+        </div>
+
+        <div class="section-row">
+          <span class="section-title">Recent Transactions</span>
+          <button class="text-btn" id="see-all-btn">See all</button>
+        </div>
+        <div id="recent-list" class="txn-list"></div>
+      </div>
+
+      <!-- TRANSACTIONS -->
+      <div id="tab-transactions" class="tab-view hidden">
+        <div class="page-title">All Transactions</div>
+        <div class="filter-bar">
+          <input type="text" id="search-input" class="search-input" placeholder="🔍 Search…">
+          <select id="filter-type" class="filter-select">
+            <option value="all">All</option>
+            <option value="income">Income</option>
+            <option value="expense">Expense</option>
+          </select>
+          <select id="filter-month" class="filter-select"></select>
+        </div>
+        <div id="all-list" class="txn-list"></div>
+      </div>
+
+      <!-- CHARTS -->
+      <div id="tab-charts" class="tab-view hidden">
+        <div class="page-title">Insights</div>
+        <div class="period-tabs">
+          <button class="period-btn active" data-period="month">This Month</button>
+          <button class="period-btn" data-period="3months">3 Months</button>
+          <button class="period-btn" data-period="year">This Year</button>
+        </div>
+        <div class="chart-card">
+          <div class="chart-card-title">Spending by Category</div>
+          <div class="chart-wrap"><canvas id="pie-chart"></canvas></div>
+          <div id="pie-legend" class="chart-legend"></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-card-title">Monthly Overview (6mo)</div>
+          <div class="chart-wrap bar-wrap"><canvas id="bar-chart"></canvas></div>
+        </div>
+      </div>
+
+      <!-- BUDGET -->
+      <div id="tab-budget" class="tab-view hidden">
+        <div class="page-title">Budget</div>
+        <div class="budget-setup-card">
+          <div class="budget-emoji">🎯</div>
+          <h3>Monthly Budget</h3>
+          <p class="muted">Set your spending limit for the month</p>
+          <div class="budget-input-wrap">
+            <span class="currency-sym">$</span>
+            <input type="number" id="budget-amount-input" class="budget-big-input" placeholder="0.00" min="0" step="0.01">
+          </div>
+          <button class="btn-primary full-btn" id="save-budget-btn">Save Budget</button>
+        </div>
+        <div class="budget-doughnut-card" id="budget-doughnut-card">
+          <div class="donut-wrap">
+            <canvas id="budget-donut"></canvas>
+            <div class="donut-center">
+              <div id="donut-pct" class="donut-pct">0%</div>
+              <div class="donut-label">used</div>
+            </div>
+          </div>
+          <div class="donut-stats">
+            <div class="ds-item"><div class="ds-label">Budget</div><div class="ds-val" id="ds-budget">$0</div></div>
+            <div class="ds-item"><div class="ds-label">Spent</div><div class="ds-val expense-text" id="ds-spent">$0</div></div>
+            <div class="ds-item"><div class="ds-label">Left</div><div class="ds-val income-text" id="ds-left">$0</div></div>
+          </div>
+        </div>
+      </div>
+
+    </main>
+
+    <!-- BOTTOM NAV -->
+    <nav class="bottom-nav">
+      <button class="nav-item active" data-tab="dashboard">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+        <span>Home</span>
+      </button>
+      <button class="nav-item" data-tab="transactions">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+        <span>History</span>
+      </button>
+      <button class="nav-fab" id="fab-add">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      </button>
+      <button class="nav-item" data-tab="charts">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+        <span>Charts</span>
+      </button>
+      <button class="nav-item" data-tab="budget">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+        <span>Budget</span>
+      </button>
+    </nav>
+  </div>
+
+  <!-- ── ADD TRANSACTION MODAL ── -->
+  <div id="modal-add" class="modal-overlay hidden">
+    <div class="modal-sheet" id="modal-sheet-add">
+      <div class="sheet-handle"></div>
+      <div class="modal-head">
+        <h2 id="modal-title">Add Transaction</h2>
+        <button class="close-btn" id="close-modal">✕</button>
+      </div>
+      <div class="type-toggle">
+        <button class="type-btn active" id="btn-expense" data-type="expense">💸 Expense</button>
+        <button class="type-btn" id="btn-income" data-type="income">💰 Income</button>
+      </div>
+      <div class="amount-row">
+        <span class="amt-sym">$</span>
+        <input type="number" id="txn-amount" class="amount-input" placeholder="0.00" min="0" step="0.01" inputmode="decimal">
+      </div>
+      <label class="form-label">Category</label>
+      <div class="category-grid" id="category-grid"></div>
+      <label class="form-label">Note <span class="optional">(optional)</span></label>
+      <input type="text" id="txn-note" class="form-input" placeholder="What's this for?">
+      <label class="form-label">Date</label>
+      <input type="date" id="txn-date" class="form-input">
+      <button class="btn-primary full-btn" id="save-txn-btn">Add Transaction</button>
+    </div>
+  </div>
+
+  <!-- ── BUDGET QUICK MODAL ── -->
+  <div id="modal-budget" class="modal-overlay hidden">
+    <div class="modal-sheet small-sheet">
+      <div class="sheet-handle"></div>
+      <div class="modal-head">
+        <h2>Set Budget</h2>
+        <button class="close-btn" id="close-budget-modal">✕</button>
+      </div>
+      <label class="form-label">Monthly Budget Amount</label>
+      <div class="input-prefix">
+        <span>$</span>
+        <input type="number" id="quick-budget-input" class="form-input" placeholder="e.g. 2000" min="0">
+      </div>
+      <button class="btn-primary full-btn" id="save-quick-budget-btn">Save Budget</button>
+    </div>
+  </div>
+
+  <!-- TOAST -->
+  <div id="toast" class="toast hidden"></div>
+
+  <!-- Firebase SDKs (compat) -->
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <!-- App -->
+  <script src="js/app.js"></script>
+</body>
+</html>
