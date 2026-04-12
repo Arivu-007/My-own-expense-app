@@ -51,6 +51,7 @@ const S = {
   activeTab: 'dashboard',
   txnType: 'expense',
   selectedCat: null,
+  editingId: null,
   unsub: {},
   charts: {},
   chartPeriod: 'month',
@@ -131,6 +132,11 @@ function listenData(uid) {
 async function addTxn(data) {
   await db.collection('users').doc(HOUSEHOLD_UID).collection('transactions')
     .add({ ...data, addedBy: S.user.displayName || S.user.email, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
+}
+
+async function updateTxn(id, data) {
+  await db.collection('users').doc(HOUSEHOLD_UID).collection('transactions').doc(id)
+    .update({ ...data, editedBy: S.user.displayName || S.user.email, updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
 }
 
 async function deleteTxn(id) {
@@ -225,18 +231,29 @@ function renderTxnList(containerId, txns) {
   }
   el.innerHTML = txns.map(t => {
     const cat = getCat(t.type, t.category);
+    const addedByBadge = t.addedBy ? `<span class="added-by-badge">${t.addedBy.split(' ')[0] || t.addedBy.split('@')[0]}</span>` : '';
     return `<div class="txn-item">
       <div class="txn-icon" style="background:${cat.color}22;color:${cat.color}">${cat.icon}</div>
       <div class="txn-info">
         <div class="txn-name">${cat.name}</div>
-        <div class="txn-meta">${t.note || 'No note'} · ${fmtDate(t.date)}</div>
+        <div class="txn-meta">${t.note || 'No note'} · ${fmtDate(t.date)}${addedByBadge}</div>
       </div>
       <div class="txn-right">
         <div class="txn-amount ${t.type === 'income' ? 'income-text' : 'expense-text'}">${t.type === 'income' ? '+' : '-'}${fmt(t.amount)}</div>
-        <button class="delete-btn" data-id="${t.id}">🗑️</button>
+        <div class="txn-actions">
+          <button class="edit-btn" data-id="${t.id}" title="Edit">✏️</button>
+          <button class="delete-btn" data-id="${t.id}" title="Delete">🗑️</button>
+        </div>
       </div>
     </div>`;
   }).join('');
+  el.querySelectorAll('.edit-btn').forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      const txn = S.transactions.find(t => t.id === btn.dataset.id);
+      if (txn) openModal(txn);
+    });
+  });
   el.querySelectorAll('.delete-btn').forEach(btn => {
     btn.addEventListener('click', async e => {
       e.stopPropagation();
@@ -369,18 +386,35 @@ function renderBudgetDonut() {
 }
 
 // ── ADD TRANSACTION MODAL ──
-document.getElementById('fab-add').addEventListener('click', openModal);
-document.getElementById('close-modal').addEventListener('click', () => document.getElementById('modal-add').classList.add('hidden'));
-document.getElementById('modal-add').addEventListener('click', e => { if (e.target === e.currentTarget) document.getElementById('modal-add').classList.add('hidden'); });
+document.getElementById('fab-add').addEventListener('click', () => openModal());
+document.getElementById('close-modal').addEventListener('click', () => {
+  document.getElementById('modal-add').classList.add('hidden');
+  S.editingId = null;
+});
+document.getElementById('modal-add').addEventListener('click', e => {
+  if (e.target === e.currentTarget) {
+    document.getElementById('modal-add').classList.add('hidden');
+    S.editingId = null;
+  }
+});
 
-function openModal() {
-  S.selectedCat = null; S.txnType = 'expense';
-  document.getElementById('txn-amount').value = '';
-  document.getElementById('txn-note').value = '';
-  document.getElementById('txn-date').value = today();
-  document.getElementById('modal-title').textContent = 'Add Transaction';
-  document.getElementById('save-txn-btn').textContent = 'Add Transaction';
-  setTxnType('expense');
+function openModal(txn = null) {
+  S.editingId = txn ? txn.id : null;
+  S.selectedCat = txn ? txn.category : null;
+  S.txnType = txn ? txn.type : 'expense';
+  document.getElementById('txn-amount').value = txn ? txn.amount : '';
+  document.getElementById('txn-note').value = txn ? (txn.note || '') : '';
+  document.getElementById('txn-date').value = txn ? txn.date : today();
+  document.getElementById('modal-title').textContent = txn ? 'Edit Transaction' : 'Add Transaction';
+  document.getElementById('save-txn-btn').textContent = txn ? 'Update Transaction' : 'Add Transaction';
+  setTxnType(S.txnType);
+  // Pre-select category if editing
+  if (txn) {
+    setTimeout(() => {
+      const chip = document.querySelector(`.cat-chip[data-id="${txn.category}"]`);
+      if (chip) { chip.classList.add('selected'); }
+    }, 50);
+  }
   document.getElementById('modal-add').classList.remove('hidden');
   setTimeout(() => document.getElementById('txn-amount').focus(), 300);
 }
@@ -419,15 +453,23 @@ document.getElementById('save-txn-btn').addEventListener('click', async () => {
   if (!S.selectedCat) return showToast('Select a category', 'error');
   if (!date) return showToast('Select a date', 'error');
   const btn = document.getElementById('save-txn-btn');
-  btn.disabled = true; btn.textContent = 'Saving…';
+  btn.disabled = true; btn.textContent = S.editingId ? 'Updating…' : 'Saving…';
   try {
-    await addTxn({ type: S.txnType, amount, category: S.selectedCat, note, date });
+    const payload = { type: S.txnType, amount, category: S.selectedCat, note, date };
+    if (S.editingId) {
+      await updateTxn(S.editingId, payload);
+      showToast('✅ Transaction updated!');
+    } else {
+      await addTxn(payload);
+      showToast(S.txnType === 'income' ? '💰 Income added!' : '💸 Expense added!');
+    }
     document.getElementById('modal-add').classList.add('hidden');
-    showToast(S.txnType === 'income' ? '💰 Income added!' : '💸 Expense added!');
+    S.editingId = null;
   } catch (e) {
     showToast('Failed: ' + e.message, 'error');
   } finally {
-    btn.disabled = false; btn.textContent = 'Add Transaction';
+    btn.disabled = false;
+    btn.textContent = S.editingId ? 'Update Transaction' : 'Add Transaction';
   }
 });
 
@@ -448,6 +490,21 @@ document.getElementById('save-quick-budget-btn').addEventListener('click', async
   await saveBudget(v);
   document.getElementById('modal-budget').classList.add('hidden');
   showToast('🎯 Budget saved!');
+});
+
+// ── THEME TOGGLE ──
+(function initTheme() {
+  const saved = localStorage.getItem('ef-theme') || 'dark';
+  if (saved === 'light') {
+    document.body.classList.add('light');
+    document.getElementById('theme-toggle-btn').textContent = '☀️';
+  }
+})();
+
+document.getElementById('theme-toggle-btn').addEventListener('click', () => {
+  const isLight = document.body.classList.toggle('light');
+  document.getElementById('theme-toggle-btn').textContent = isLight ? '☀️' : '🌙';
+  localStorage.setItem('ef-theme', isLight ? 'light' : 'dark');
 });
 
 // ── PWA SERVICE WORKER ──

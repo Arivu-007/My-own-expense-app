@@ -19,6 +19,23 @@
   --radius: 16px;
   --radius-lg: 24px;
   --radius-sm: 10px;
+  --shadow: rgba(0,0,0,0.4);
+}
+
+/* ── LIGHT MODE ── */
+body.light {
+  --bg: #f0f2f8;
+  --bg2: #e4e7f0;
+  --card: #ffffff;
+  --card2: #f5f6fa;
+  --border: #d1d5e8;
+  --accent: #6c63ff;
+  --accent2: #5a52e0;
+  --income: #00a884;
+  --expense: #e85555;
+  --text: #1a1f36;
+  --muted: #6b7299;
+  --shadow: rgba(0,0,0,0.12);
 }
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -66,7 +83,7 @@ html, body {
   box-shadow: 0 24px 60px rgba(0,0,0,0.5);
 }
 .auth-icon { width: 72px; height: 72px; border-radius: 20px; margin-bottom: 12px; }
-.auth-card h1 { font-size: 28px; font-weight: 800; background: linear-gradient(135deg, var(--accent2), var(--income)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+.auth-card h1 { font-size: 28px; font-weight: 800; background: linear-gradient(135deg, var(--accent2), var(--income)); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
 .auth-card > .auth-logo > p { color: var(--muted); margin-top: 6px; font-size: 15px; }
 .auth-features { margin: 24px 0; display: flex; flex-direction: column; gap: 10px; text-align: left; }
 .feat { display: flex; gap: 10px; align-items: center; font-size: 14px; color: var(--muted); }
@@ -86,9 +103,11 @@ html, body {
   background: rgba(10,13,20,0.9); backdrop-filter: blur(16px);
   border-bottom: 1px solid var(--border);
   display: flex; align-items: center; justify-content: space-between;
-  padding: 0 20px; z-index: 100;
+  padding: 0 20px; z-index: 100; transition: background 0.3s;
 }
+body.light .app-header { background: rgba(240,242,248,0.92); }
 .header-left { display: flex; align-items: center; gap: 12px; }
+.header-right { display: flex; align-items: center; gap: 8px; }
 .user-avatar { width: 38px; height: 38px; border-radius: 50%; border: 2px solid var(--accent); object-fit: cover; }
 .header-greeting { font-size: 12px; color: var(--muted); }
 .header-name { font-size: 16px; font-weight: 700; }
@@ -97,7 +116,12 @@ html, body {
   background: var(--card); color: var(--muted); cursor: pointer;
   display: flex; align-items: center; justify-content: center; transition: all 0.2s;
 }
-.icon-btn:hover { color: var(--expense); border-color: var(--expense); }
+.icon-btn:hover { color: var(--text); border-color: var(--accent); }
+#sign-out-btn:hover { color: var(--expense); border-color: var(--expense); }
+
+/* ── THEME TOGGLE ── */
+#theme-toggle-btn { font-size: 18px; }
+#theme-toggle-btn:hover { color: var(--accent); border-color: var(--accent); }
 
 /* ── TAB CONTENT ── */
 .tab-content {
@@ -115,8 +139,9 @@ html, body {
   background: rgba(17, 21, 32, 0.95); backdrop-filter: blur(16px);
   border-top: 1px solid var(--border);
   display: flex; align-items: center; justify-content: space-around;
-  padding: 0 8px 8px; z-index: 100;
+  padding: 0 8px 8px; z-index: 100; transition: background 0.3s;
 }
+body.light .bottom-nav { background: rgba(240,242,248,0.97); }
 .nav-item {
   flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px;
   background: none; border: none; color: var(--muted); font-size: 11px; font-weight: 500;
@@ -194,11 +219,24 @@ html, body {
 .txn-meta { font-size: 12px; color: var(--muted); margin-top: 2px; }
 .txn-right { text-align: right; display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
 .txn-amount { font-size: 15px; font-weight: 700; }
-.delete-btn {
+.txn-actions { display: flex; gap: 4px; opacity: 0; transition: opacity 0.2s; }
+.txn-item:hover .txn-actions { opacity: 1; }
+.delete-btn, .edit-btn {
   background: none; border: none; font-size: 14px; cursor: pointer;
-  opacity: 0; transition: opacity 0.2s; padding: 2px 4px;
+  padding: 3px 5px; border-radius: 6px; transition: background 0.15s;
 }
-.txn-item:hover .delete-btn { opacity: 1; }
+.edit-btn { color: var(--accent); }
+.edit-btn:hover { background: rgba(108,99,255,0.15); }
+.delete-btn { color: var(--muted); }
+.delete-btn:hover { color: var(--expense); background: rgba(255,107,107,0.1); }
+
+/* ── ADDED BY BADGE ── */
+.added-by-badge {
+  display: inline-block; font-size: 10px; font-weight: 600;
+  background: rgba(108,99,255,0.12); color: var(--accent);
+  border-radius: 20px; padding: 1px 7px; margin-left: 4px;
+  vertical-align: middle; white-space: nowrap;
+}
 
 .empty-state { padding: 40px 20px; text-align: center; color: var(--muted); }
 .empty-icon { font-size: 48px; margin-bottom: 12px; }
