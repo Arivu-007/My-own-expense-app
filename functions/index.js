@@ -197,3 +197,138 @@ exports.telegramWebhook = functions.https.onRequest(async (req, res) => {
     return res.status(200).send('ok');
   }
 });
+
+// ═══════════════════════════════════════════════════════════════
+// ── MERCHANT → CATEGORY MAP ──
+// ═══════════════════════════════════════════════════════════════
+const MERCHANT_CATEGORY_MAP = [
+  { keywords: ['WALGREENS','CVS','PHARMACY','RITE AID','CLINIC','HOSPITAL','URGENT CARE','DENTAL','DOCTOR'], category: 'health' },
+  { keywords: ['HEB','KROGER','WHOLE FOODS','WHOLEFDS','ALDI','PUBLIX','SAFEWAY','TRADER JOE','SPROUTS',"SAM'S CLUB",'FOOD LION','GIANT','MEIJER','WINN-DIXIE','FIESTA'], category: 'groceries' },
+  { keywords: ['STARBUCKS','MCDONALD','CHIPOTLE','TACO BELL','SUBWAY','BURGER KING','DOMINO','PIZZA','RESTAURANT','CAFE','DINER','DOORDASH','UBER EATS','GRUBHUB','INSTACART','PANDA','POPEYES','KFC','PANERA','DUNKIN','SONIC','DAIRY QUEEN','FIVE GUYS','WHATABURGER','RAISING CANE'], category: 'food' },
+  { keywords: ['SHELL','CHEVRON','EXXON','BP GAS','MOBIL','VALERO','MARATHON','SUNOCO','CIRCLE K','WAWA','SPEEDWAY','PILOT TRAVEL','UBER*','LYFT','PARKING','TOLLWAY','PIKE PASS','EZPASS','AMTRAK','METRO'], category: 'transport' },
+  { keywords: ['WALMART','WAL-MART','TARGET','AMAZON','COSTCO','BEST BUY','HOME DEPOT','LOWES','IKEA','MACY','NORDSTROM','KOHLS','MARSHALLS','TJ MAXX','ROSS','OLD NAVY','GAP','H&M','ZARA','NIKE','ADIDAS','FOOT LOCKER','DOLLAR TREE','DOLLAR GENERAL','FIVE BELOW','ULTA','SEPHORA','PETCO','PETSMART'], category: 'shopping' },
+  { keywords: ['NETFLIX','SPOTIFY','APPLE.COM','GOOGLE PLAY','YOUTUBE','HULU','DISNEY','HBO','AMAZON PRIME','PLAYSTATION','XBOX','STEAM','AMC THEATRE','REGAL','CINEMARK','TICKETMASTER'], category: 'entertainment' },
+  { keywords: ['AT&T','VERIZON','T-MOBILE','TMOBILE','COMCAST','XFINITY','SPECTRUM','COX COMM','ELECTRIC','UTILITY','WATER BILL','INSURANCE','GEICO','ALLSTATE','STATE FARM','PROGRESSIVE'], category: 'bills' },
+  { keywords: ['HOTEL','MARRIOTT','HILTON','HYATT','AIRBNB','EXPEDIA','BOOKING.COM','DELTA','AMERICAN AIR','UNITED AIR','SOUTHWEST','SPIRIT AIR','JETBLUE','FRONTIER'], category: 'travel' },
+  { keywords: ['RENT','APARTMENT','MORTGAGE','PROPERTY MGMT'], category: 'housing' },
+  { keywords: ['COURSERA','UDEMY','CHEGG','TUITION','UNIVERSITY','COLLEGE'], category: 'education' },
+];
+
+// ── BANK ALERT TEXT PARSER ──
+function parseBankAlert(text) {
+  if (!text) return null;
+  const upper = text.toUpperCase();
+
+  // Extract amount — matches $7.32 or $1,234.56
+  const amountMatch = text.match(/\$([0-9,]+\.[0-9]{2})/);
+  if (!amountMatch) return null;
+  const amount = parseFloat(amountMatch[1].replace(',', ''));
+  if (isNaN(amount) || amount <= 0) return null;
+
+  // Extract merchant
+  let merchant = null;
+  const patterns = [
+    /(?:at|@)\s+([A-Z0-9&'\-\s\.]+?)(?:\s*#\d+)?(?:\s+on\s+\w|\s*\.|$)/i,
+    /(?:initiated at|purchase at|spent at|used at|charge at|charged at|transaction at)\s+([A-Z0-9&'\-\s\.]+?)(?:\s*#\d+)?(?:\s+on\s+|\.|$)/i,
+    /at\s+([A-Z0-9&'\-\s\.]+)/i,
+  ];
+  for (const pattern of patterns) {
+    const match = text.match(pattern);
+    if (match && match[1]) {
+      merchant = match[1].trim().toUpperCase();
+      merchant = merchant.replace(/\s+ON\s+.*/i, '').replace(/\.$/, '').trim();
+      if (merchant.length > 2) break;
+    }
+  }
+  if (!merchant) return null;
+
+  // Extract date (fall back to today)
+  let date = new Date().toISOString().split('T')[0];
+  const dateMatch = text.match(/(\w+ \d{1,2},?\s+\d{4})/);
+  if (dateMatch) {
+    const parsed = new Date(dateMatch[1]);
+    if (!isNaN(parsed)) date = parsed.toISOString().split('T')[0];
+  }
+
+  // Map merchant → category
+  let category = 'shopping';
+  for (const rule of MERCHANT_CATEGORY_MAP) {
+    if (rule.keywords.some(kw => merchant.includes(kw))) { category = rule.category; break; }
+  }
+
+  // Detect credit/refund
+  const creditWords = ['REFUND','CASHBACK','CASH BACK','CREDIT','DEPOSIT','PAYMENT RECEIVED','REVERSAL'];
+  const isCredit = creditWords.some(w => upper.includes(w));
+
+  return { amount, merchant: toTitleCase(merchant), category, date, isCredit, type: isCredit ? 'income' : 'expense' };
+}
+
+function toTitleCase(str) {
+  return str.toLowerCase().replace(/\b\w/g, c => c.toUpperCase());
+}
+
+// ═══════════════════════════════════════════════════════════════
+// ── CLOUD FUNCTION 2: NOTIFICATION WEBHOOK (MacroDroid) ──
+// MacroDroid POSTs here when a bank notification arrives.
+// ═══════════════════════════════════════════════════════════════
+exports.notificationWebhook = functions.https.onRequest(async (req, res) => {
+
+  if (req.method === 'GET') {
+    return res.status(200).json({ status: 'ok', message: 'ExpenseFlow Notification Webhook ✅' });
+  }
+  if (req.method !== 'POST') return res.status(405).send('Method Not Allowed');
+
+  try {
+    const { text, app, title } = req.body;
+    if (!text) return res.status(400).json({ error: 'Missing notification text' });
+
+    console.log('📲 Notification received:', { app, title, text });
+
+    const parsed = parseBankAlert(text);
+    if (!parsed) {
+      console.log('⚠️ Could not parse:', text);
+      await sendTelegramMessage(TELEGRAM_CHAT_ID,
+        `⚠️ *Notification received but couldn't parse*\n\n_"${text.substring(0, 200)}"_\n\nAdd manually if needed.`
+      );
+      return res.status(200).json({ status: 'skipped', reason: 'Could not parse' });
+    }
+
+    // Skip non-transaction alerts
+    const skipWords = ['PAYMENT DUE','STATEMENT','PROMOTIONAL','AVAILABLE CREDIT','PAYMENT POSTED'];
+    if (skipWords.some(w => text.toUpperCase().includes(w))) {
+      return res.status(200).json({ status: 'skipped', reason: 'Non-transaction notification' });
+    }
+
+    const emoji = CAT_EMOJI[parsed.category] || '📌';
+    const catName = parsed.category.charAt(0).toUpperCase() + parsed.category.slice(1);
+    const appName = app ? app.split('.').pop() : 'Bank';
+
+    const docRef = await db.collection('users').doc(HOUSEHOLD_UID).collection('transactions').add({
+      type: parsed.type,
+      amount: parsed.amount,
+      category: parsed.category,
+      note: parsed.merchant,
+      date: parsed.date,
+      addedBy: `Auto (${toTitleCase(appName)})`,
+      source: 'notification',
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+
+    console.log('✅ Saved:', docRef.id, parsed);
+
+    await sendTelegramMessage(TELEGRAM_CHAT_ID,
+      `${emoji} *Auto-logged!*\n\n` +
+      `Amount: *${parsed.type === 'income' ? '+' : '-'}$${parsed.amount.toFixed(2)}*\n` +
+      `Merchant: ${parsed.merchant}\n` +
+      `Category: ${catName}\n` +
+      `Date: ${parsed.date}\n\n` +
+      `✅ Synced to ExpenseFlow`
+    );
+
+    return res.status(200).json({ status: 'success', transaction: { id: docRef.id, amount: parsed.amount, merchant: parsed.merchant, category: parsed.category, type: parsed.type } });
+
+  } catch (err) {
+    console.error('❌ notificationWebhook error:', err);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+});
