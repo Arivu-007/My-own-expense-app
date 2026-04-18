@@ -45,33 +45,52 @@ const CAT_EMOJI = {
 };
 
 // ── PARSE MANUAL TELEGRAM MESSAGE ──
-// Format: [+]amount category [note...]
+// Accepts both orders: "70 food" OR "food 70" OR "food 70 note"
 function parseMessage(text) {
   if (!text) return null;
   const parts = text.trim().split(/\s+/);
   if (parts.length < 2) return null;
 
   let isIncome = false;
-  let amountStr = parts[0];
 
-  if (amountStr.startsWith('+')) {
-    isIncome = true;
-    amountStr = amountStr.slice(1);
+  // Strip leading + for income (can be on either the amount or category part)
+  let rawParts = parts.map(p => {
+    if (p.startsWith('+')) { isIncome = true; return p.slice(1); }
+    return p;
+  });
+
+  // Find which part is the number and which is the category
+  let amountStr, catKey, noteParts;
+
+  const firstNum = parseFloat(rawParts[0]);
+  const secondNum = parseFloat(rawParts[1]);
+
+  if (!isNaN(firstNum) && firstNum > 0) {
+    // Normal order: "70 food [note]"
+    amountStr = rawParts[0];
+    catKey = rawParts[1].toLowerCase();
+    noteParts = rawParts.slice(2);
+  } else if (!isNaN(secondNum) && secondNum > 0) {
+    // Reversed order: "food 70 [note]"
+    catKey = rawParts[0].toLowerCase();
+    amountStr = rawParts[1];
+    noteParts = rawParts.slice(2);
+  } else {
+    return null;
   }
 
   const amount = parseFloat(amountStr);
   if (isNaN(amount) || amount <= 0) return null;
 
-  const catKey = parts[1].toLowerCase();
-  const note = parts.slice(2).join(' ') || '';
+  const note = noteParts.join(' ') || '';
 
   if (isIncome) {
     const category = INCOME_CATS[catKey];
-    if (!category) return { error: `Unknown income category: "${parts[1]}"\n\nValid: salary, business, freelance, investment, gift, other` };
+    if (!category) return { error: `Unknown income category: "${catKey}"\n\nValid: salary, business, freelance, investment, gift, other` };
     return { type: 'income', amount, category, note, isIncome: true };
   } else {
     const category = EXPENSE_CATS[catKey];
-    if (!category) return { error: `Unknown expense category: "${parts[1]}"\n\nValid: food, groceries, transport, housing, bills, fun, health, shopping, education, travel, other` };
+    if (!category) return { error: `Unknown expense category: "${catKey}"\n\nValid: food, groceries, transport, housing, bills, fun, health, shopping, education, travel, other` };
     return { type: 'expense', amount, category, note, isIncome: false };
   }
 }
