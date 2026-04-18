@@ -385,38 +385,71 @@ function renderBudgetDonut() {
   });
 }
 
-// ── ADD TRANSACTION MODAL ──
+// ── QUICK-ADD MODAL ──
+
+// Keypad raw string state
+let qaRaw = '0';
+
+function qaUpdateDisplay() {
+  const disp = document.getElementById('qa-display');
+  if (!disp) return;
+  const val = parseFloat(qaRaw);
+  disp.textContent = qaRaw === '0' ? '0' : qaRaw;
+  disp.classList.toggle('has-value', !isNaN(val) && val > 0);
+  // sync hidden input
+  document.getElementById('txn-amount').value = qaRaw;
+  // highlight matching chip
+  document.querySelectorAll('.qa-chip').forEach(c => {
+    c.classList.toggle('active', parseFloat(c.dataset.val) === val);
+  });
+}
+
 document.getElementById('fab-add').addEventListener('click', () => openModal());
-document.getElementById('close-modal').addEventListener('click', () => {
-  document.getElementById('modal-add').classList.add('hidden');
-  S.editingId = null;
-});
+document.getElementById('close-modal').addEventListener('click', closeModal);
 document.getElementById('modal-add').addEventListener('click', e => {
-  if (e.target === e.currentTarget) {
-    document.getElementById('modal-add').classList.add('hidden');
-    S.editingId = null;
-  }
+  if (e.target === e.currentTarget) closeModal();
 });
+
+function closeModal() {
+  document.getElementById('modal-add').classList.add('hidden');
+  document.getElementById('modal-sheet-add').classList.remove('edit-mode');
+  S.editingId = null;
+  qaRaw = '0';
+  qaUpdateDisplay();
+}
 
 function openModal(txn = null) {
   S.editingId = txn ? txn.id : null;
   S.selectedCat = txn ? txn.category : null;
   S.txnType = txn ? txn.type : 'expense';
-  document.getElementById('txn-amount').value = txn ? txn.amount : '';
   document.getElementById('txn-note').value = txn ? (txn.note || '') : '';
   document.getElementById('txn-date').value = txn ? txn.date : today();
-  document.getElementById('modal-title').textContent = txn ? 'Edit Transaction' : 'Add Transaction';
   document.getElementById('save-txn-btn').textContent = txn ? 'Update Transaction' : 'Add Transaction';
+
+  const sheet = document.getElementById('modal-sheet-add');
+  if (txn) {
+    // Edit mode: hide keypad, show amount directly
+    sheet.classList.add('edit-mode');
+    qaRaw = String(txn.amount);
+    document.getElementById('txn-amount').value = txn.amount;
+    // Show amount in display anyway
+    const disp = document.getElementById('qa-display');
+    if (disp) { disp.textContent = txn.amount; disp.classList.add('has-value'); }
+  } else {
+    sheet.classList.remove('edit-mode');
+    qaRaw = '0';
+    qaUpdateDisplay();
+  }
+
   setTxnType(S.txnType);
-  // Pre-select category if editing
+
   if (txn) {
     setTimeout(() => {
-      const chip = document.querySelector(`.cat-chip[data-id="${txn.category}"]`);
-      if (chip) { chip.classList.add('selected'); }
+      const chip = document.querySelector(`#category-grid .cat-chip[data-id="${txn.category}"]`);
+      if (chip) chip.classList.add('selected');
     }, 50);
   }
   document.getElementById('modal-add').classList.remove('hidden');
-  setTimeout(() => document.getElementById('txn-amount').focus(), 300);
 }
 
 document.getElementById('btn-expense').addEventListener('click', () => setTxnType('expense'));
@@ -445,12 +478,42 @@ function renderCatGrid(type) {
   });
 }
 
+// ── Keypad input ──
+document.querySelectorAll('.kp-btn[data-key]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const key = btn.dataset.key;
+    if (key === '.') {
+      if (!qaRaw.includes('.')) qaRaw += '.';
+    } else {
+      if (qaRaw === '0') qaRaw = key;
+      else if (qaRaw.length < 8) qaRaw += key;  // max 8 chars
+    }
+    qaUpdateDisplay();
+  });
+});
+
+document.getElementById('kp-backspace').addEventListener('click', () => {
+  if (qaRaw.length <= 1) qaRaw = '0';
+  else qaRaw = qaRaw.slice(0, -1);
+  qaUpdateDisplay();
+});
+
+// ── Quick amount chips ──
+document.querySelectorAll('.qa-chip').forEach(chip => {
+  chip.addEventListener('click', () => {
+    qaRaw = chip.dataset.val;
+    qaUpdateDisplay();
+  });
+});
+
+// ── Save ──
 document.getElementById('save-txn-btn').addEventListener('click', async () => {
-  const amount = parseFloat(document.getElementById('txn-amount').value);
+  const amountStr = document.getElementById('txn-amount').value;
+  const amount = parseFloat(amountStr);
   const note = document.getElementById('txn-note').value.trim();
   const date = document.getElementById('txn-date').value;
   if (!amount || amount <= 0) return showToast('Enter a valid amount', 'error');
-  if (!S.selectedCat) return showToast('Select a category', 'error');
+  if (!S.selectedCat) return showToast('Pick a category', 'error');
   if (!date) return showToast('Select a date', 'error');
   const btn = document.getElementById('save-txn-btn');
   btn.disabled = true; btn.textContent = S.editingId ? 'Updating…' : 'Saving…';
@@ -463,8 +526,7 @@ document.getElementById('save-txn-btn').addEventListener('click', async () => {
       await addTxn(payload);
       showToast(S.txnType === 'income' ? '💰 Income added!' : '💸 Expense added!');
     }
-    document.getElementById('modal-add').classList.add('hidden');
-    S.editingId = null;
+    closeModal();
   } catch (e) {
     showToast('Failed: ' + e.message, 'error');
   } finally {

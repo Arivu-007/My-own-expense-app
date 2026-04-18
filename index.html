@@ -193,29 +193,69 @@
     </nav>
   </div>
 
-  <!-- ── ADD TRANSACTION MODAL ── -->
+  <!-- ── QUICK-ADD MODAL ── -->
   <div id="modal-add" class="modal-overlay hidden">
-    <div class="modal-sheet" id="modal-sheet-add">
+    <div class="modal-sheet qa-sheet" id="modal-sheet-add">
       <div class="sheet-handle"></div>
-      <div class="modal-head">
-        <h2 id="modal-title">Add Transaction</h2>
+
+      <!-- Header -->
+      <div class="qa-header">
+        <div class="type-toggle qa-toggle">
+          <button class="type-btn active" id="btn-expense" data-type="expense">💸 Expense</button>
+          <button class="type-btn" id="btn-income" data-type="income">💰 Income</button>
+        </div>
         <button class="close-btn" id="close-modal">✕</button>
       </div>
-      <div class="type-toggle">
-        <button class="type-btn active" id="btn-expense" data-type="expense">💸 Expense</button>
-        <button class="type-btn" id="btn-income" data-type="income">💰 Income</button>
+
+      <!-- Amount Display -->
+      <div class="qa-amount-display">
+        <span class="qa-currency">$</span>
+        <span class="qa-amount-val" id="qa-display">0</span>
       </div>
-      <div class="amount-row">
-        <span class="amt-sym">$</span>
-        <input type="number" id="txn-amount" class="amount-input" placeholder="0.00" min="0" step="0.01" inputmode="decimal">
+
+      <!-- Quick Amount Chips -->
+      <div class="qa-chips">
+        <button class="qa-chip" data-val="5">$5</button>
+        <button class="qa-chip" data-val="10">$10</button>
+        <button class="qa-chip" data-val="20">$20</button>
+        <button class="qa-chip" data-val="50">$50</button>
+        <button class="qa-chip" data-val="100">$100</button>
       </div>
-      <label class="form-label">Category</label>
-      <div class="category-grid" id="category-grid"></div>
-      <label class="form-label">Note <span class="optional">(optional)</span></label>
-      <input type="text" id="txn-note" class="form-input" placeholder="What's this for?">
-      <label class="form-label">Date</label>
-      <input type="date" id="txn-date" class="form-input">
-      <button class="btn-primary full-btn" id="save-txn-btn">Add Transaction</button>
+
+      <!-- Category Grid -->
+      <div class="qa-cat-scroll">
+        <div class="qa-cat-grid" id="category-grid"></div>
+      </div>
+
+      <!-- Note row -->
+      <div class="qa-note-row">
+        <input type="text" id="txn-note" class="qa-note-input" placeholder="✏️  Add a note (optional)">
+        <input type="date" id="txn-date" class="qa-date-input">
+      </div>
+
+      <!-- Phone-style Keypad -->
+      <div class="qa-keypad">
+        <button class="kp-btn" data-key="1">1</button>
+        <button class="kp-btn" data-key="2">2</button>
+        <button class="kp-btn" data-key="3">3</button>
+        <button class="kp-btn" data-key="4">4</button>
+        <button class="kp-btn" data-key="5">5</button>
+        <button class="kp-btn" data-key="6">6</button>
+        <button class="kp-btn" data-key="7">7</button>
+        <button class="kp-btn" data-key="8">8</button>
+        <button class="kp-btn" data-key="9">9</button>
+        <button class="kp-btn kp-dot" data-key=".">.</button>
+        <button class="kp-btn" data-key="0">0</button>
+        <button class="kp-btn kp-del" id="kp-backspace">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 4H8l-7 8 7 8h13a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2z"/><line x1="18" y1="9" x2="12" y2="15"/><line x1="12" y1="9" x2="18" y2="15"/></svg>
+        </button>
+      </div>
+
+      <!-- Save Button -->
+      <button class="btn-primary full-btn qa-save-btn" id="save-txn-btn">Add Transaction</button>
+
+      <!-- hidden real input for compatibility -->
+      <input type="hidden" id="txn-amount">
     </div>
   </div>
 
