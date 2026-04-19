@@ -1,0 +1,79 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <defs>
+    <radialGradient id="bgGrad" cx="50%" cy="35%" r="70%">
+      <stop offset="0%" style="stop-color:#1a1d35"/>
+      <stop offset="100%" style="stop-color:#0a0c1a"/>
+    </radialGradient>
+    <linearGradient id="glossGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:white;stop-opacity:0.12"/>
+      <stop offset="50%" style="stop-color:white;stop-opacity:0.03"/>
+      <stop offset="100%" style="stop-color:white;stop-opacity:0"/>
+    </linearGradient>
+    <!-- Outer purple glow filter -->
+    <filter id="purpleGlow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="18" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <!-- Dollar neon glow -->
+    <filter id="neonGlow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="22" result="blur1"/>
+      <feGaussianBlur stdDeviation="10" result="blur2"/>
+      <feMerge>
+        <feMergeNode in="blur1"/>
+        <feMergeNode in="blur1"/>
+        <feMergeNode in="blur2"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <!-- Sharp inner glow -->
+    <filter id="sharpGlow" x="-10%" y="-10%" width="120%" height="120%">
+      <feGaussianBlur stdDeviation="6" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <clipPath id="roundClip">
+      <rect width="1024" height="1024" rx="220" ry="220"/>
+    </clipPath>
+  </defs>
+
+  <!-- Background -->
+  <g clip-path="url(#roundClip)">
+    <rect width="1024" height="1024" fill="url(#bgGrad)"/>
+
+    <!-- Subtle background texture radial -->
+    <circle cx="512" cy="300" r="500" fill="#2a2060" opacity="0.15"/>
+    <circle cx="512" cy="800" r="400" fill="#150a40" opacity="0.2"/>
+
+    <!-- Dollar sign — deep orange glow layer (outermost) -->
+    <text x="512" y="730" font-size="780" font-weight="900" text-anchor="middle"
+          font-family="'Arial Black', 'Impact', sans-serif"
+          fill="#7c2d00" filter="url(#purpleGlow)" opacity="0.7">$</text>
+
+    <!-- Dollar sign — orange mid glow -->
+    <text x="512" y="730" font-size="780" font-weight="900" text-anchor="middle"
+          font-family="'Arial Black', 'Impact', sans-serif"
+          fill="#f97316" filter="url(#neonGlow)" opacity="0.6">$</text>
+
+    <!-- Dollar sign — bright amber neon stroke -->
+    <text x="512" y="730" font-size="780" font-weight="900" text-anchor="middle"
+          font-family="'Arial Black', 'Impact', sans-serif"
+          fill="none" stroke="#fbbf24" stroke-width="18"
+          filter="url(#sharpGlow)" opacity="0.95">$</text>
+
+    <!-- Dollar sign — bright core -->
+    <text x="512" y="730" font-size="780" font-weight="900" text-anchor="middle"
+          font-family="'Arial Black', 'Impact', sans-serif"
+          fill="#fde68a" opacity="1">$</text>
+
+    <!-- Glossy top shine -->
+    <ellipse cx="512" cy="240" rx="380" ry="180" fill="url(#glossGrad)"/>
+  </g>
+
+  <!-- Purple neon border -->
+  <rect x="8" y="8" width="1008" height="1008" rx="216" ry="216"
+        fill="none" stroke="#7c3aed" stroke-width="16"
+        filter="url(#purpleGlow)" opacity="0.9"/>
+
+  <!-- Inner border fine line -->
+  <rect x="16" y="16" width="992" height="992" rx="210" ry="210"
+        fill="none" stroke="#a855f7" stroke-width="4" opacity="0.6"/>
+</svg>

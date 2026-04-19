@@ -1,0 +1,11 @@
+{
+  "appId": "com.expenseflow.app",
+  "appName": "ExpenseFlow",
+  "webDir": "www",
+  "server": {
+    "url": "https://expense-143df.web.app",
+    "cleartext": false,
+    "androidScheme": "https"
+  },
+  "plugins": {}
+}
