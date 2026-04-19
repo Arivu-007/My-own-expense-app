@@ -131,6 +131,9 @@ exports.telegramWebhook = functions.https.onRequest(async (req, res) => {
 
     const chatId = message.chat.id;
     const senderName = message.from.first_name || message.from.username || 'Someone';
+
+    // Persist chatId so smsWebhook can send notifications
+    await db.collection('config').doc('telegram').set({ chatId }, { merge: true });
     const text = message.text.trim();
 
     if (text === '/start' || text === '/help') {
@@ -200,7 +203,7 @@ exports.telegramWebhook = functions.https.onRequest(async (req, res) => {
 // ═══════════════════════════════════════════════════════════════
 const MERCHANT_CATEGORY_MAP = [
   { keywords: ['WALGREENS','CVS','PHARMACY','RITE AID','CLINIC','HOSPITAL','URGENT CARE','DENTAL','DOCTOR'], category: 'health' },
-  { keywords: ['HEB','KROGER','WHOLE FOODS','WHOLEFDS','ALDI','PUBLIX','SAFEWAY','TRADER JOE','SPROUTS',"SAM'S CLUB",'FOOD LION','GIANT','MEIJER','WINN-DIXIE','FIESTA'], category: 'groceries' },
+  { keywords: ['HEB','KROGER','WHOLE FOODS','WHOLEFDS','ALDI','PUBLIX','SAFEWAY','TRADER JOE','SPROUTS',"SAM'S",'SAMS','KEEMAT','FOOD LION','GIANT','MEIJER','WINN-DIXIE','FIESTA','COSTCO'], category: 'groceries' },
   { keywords: ['STARBUCKS','MCDONALD','CHIPOTLE','TACO BELL','SUBWAY','BURGER KING','DOMINO','PIZZA','RESTAURANT','CAFE','DINER','DOORDASH','UBER EATS','GRUBHUB','INSTACART','PANDA','POPEYES','KFC','PANERA','DUNKIN','SONIC','DAIRY QUEEN','FIVE GUYS','WHATABURGER','RAISING CANE'], category: 'food' },
   { keywords: ['SHELL','CHEVRON','EXXON','BP GAS','MOBIL','VALERO','MARATHON','SUNOCO','CIRCLE K','WAWA','SPEEDWAY','PILOT TRAVEL','UBER*','LYFT','PARKING','TOLLWAY','PIKE PASS','EZPASS','AMTRAK','METRO'], category: 'transport' },
   { keywords: ['WALMART','WAL-MART','TARGET','AMAZON','COSTCO','BEST BUY','HOME DEPOT','LOWES','IKEA','MACY','NORDSTROM','KOHLS','MARSHALLS','TJ MAXX','ROSS','OLD NAVY','GAP','H&M','ZARA','NIKE','ADIDAS','FOOT LOCKER','DOLLAR TREE','DOLLAR GENERAL','FIVE BELOW','ULTA','SEPHORA','PETCO','PETSMART'], category: 'shopping' },
@@ -303,12 +306,15 @@ exports.smsWebhook = functions.https.onRequest(async (req, res) => {
       return res.status(200).json({ status: 'skipped', reason: 'Non-transaction SMS' });
     }
 
+    // Get stored Telegram chat ID
+    const configDoc = await db.collection('config').doc('telegram').get();
+    const chatId = configDoc.exists ? configDoc.data().chatId : null;
+
     const parsed = parseBankSMS(smsText);
 
     if (!parsed) {
       console.log('⚠️ Could not parse SMS:', smsText);
-      // Notify via Telegram so you know something came in but didn't parse
-      await sendTelegramMessage(TELEGRAM_CHAT_ID,
+      if (chatId) await sendTelegramMessage(chatId,
         `⚠️ *SMS received but couldn't auto-parse*\n\n_"${smsText.substring(0, 200)}"_\n\nAdd manually via bot or quick-add.`
       );
       return res.status(200).json({ status: 'skipped', reason: 'Could not parse SMS' });
@@ -334,7 +340,7 @@ exports.smsWebhook = functions.https.onRequest(async (req, res) => {
     // Send Telegram confirmation
     const sign = parsed.type === 'income' ? '+' : '-';
     const label = parsed.type === 'income' ? 'Income' : 'Expense';
-    await sendTelegramMessage(TELEGRAM_CHAT_ID,
+    if (chatId) await sendTelegramMessage(chatId,
       `${emoji} *Auto-logged from SMS!*\n\n` +
       `Amount: *${sign}$${parsed.amount.toFixed(2)}*\n` +
       `Merchant: ${parsed.merchant}\n` +
